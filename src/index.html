@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Layout</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            display: grid;
+            grid-template-rows: auto 1fr;
+            height: 100vh;
+            /* overflow: hidden; */
+            /* 防止页面滚动 */
+        }
+
+        /* 顶部导航栏 */
+        .navbar {
+            background-color: #343a40;
+            color: white;
+            padding: 8px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* 主体布局 */
+        .main {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(10, 1fr);
+            gap: 8px;
+            /* 减小间距 */
+            padding: 8px;
+            height: calc(100vh - 56px);
+            /* 减去导航栏高度 */
+            box-sizing: border-box;
+        }
+
+        /* 通用区块样式 */
+        .map,
+        .bdrate,
+        .c,
+        .d,
+        .e {
+            background-color: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            /* 防止内容溢出 */
+        }
+
+        /* A区域 */
+        .map {
+            grid-area: 1 / 1 / 6 / 5;
+        }
+
+        /* B区域 */
+        .bdrate {
+            grid-area: 1 / 5 / 8 / 11;
+        }
+
+        /* C区域 */
+        .c {
+            grid-area: 6 / 1 / 8 / 5;
+        }
+
+        /* D区域 */
+        .d {
+            grid-area: 8 / 5 / 11 / 11;
+        }
+        .e{
+            grid-area:8/1/11/5;
+        }
+
+        /* 优化下拉框样式 */
+        .navbar select {
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="navbar">
+        <div class="logo">DataVis</div>
+        <div class="filters">
+            <label for="class-filter">Class:</label>
+            <select id="class-filter">
+                <option>All</option>
+            </select>
+            <label for="major-filter">Major:</label>
+            <select id="major-filter">
+                <option>All</option>
+            </select>
+        </div>
+    </div>
+    <!-- 主体内容 -->
+    <div class="main">
+        <!-- A: Scatter View -->
+        <div class="map" id="map-container"></div>
+        <!-- B: Portrait View -->
+        <div class="bdrate"></div>
+        <!-- C: Question View -->
+        <div class="c">C</div>
+        <!-- D: Week View -->
+        <div class="d">D</div>
+        <div class="e">E</div>
+    </div>
+    <script type="module" src="main.js"></script>
+    <script type="module" src="bdrate.js"></script>
+</body>
+
+</html>
