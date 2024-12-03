@@ -6,9 +6,9 @@ const width = 800;
 const height = 500;
 
 const projection = d3.geoMercator()
-    .center([105, 35]) // 设置地图中心点经纬度
-    .scale(570) // 设置缩放比例
-    .translate([width / 2-10, height / 2+20]); // 设置平移
+  .center([105, 35]) // 设置地图中心点经纬度
+  .scale(570) // 设置缩放比例
+  .translate([width / 2 - 10, height / 2 + 20]); // 设置平移
 
 
 const zoom = d3.zoom()
@@ -35,59 +35,57 @@ const states = g.append('g')
   .on('click', clicked)
   .attr('d', path);
 
-  states.append("title")
-      .text(d => d.properties.name);
+states.append("title")
+  .text(d => d.properties.name);
 
-  // 绘制边界线
-  g.append("path")
-      .attr("fill", "none")
-      .attr("stroke", "white")
-      .attr("stroke-linejoin", "round")
-      .attr("d", path(topojson.mesh(us, us.features, (a, b) => a !== b)));
+// 绘制边界线
+g.append("path")
+  .attr("fill", "none")
+  .attr("stroke", "white")
+  .attr("stroke-linejoin", "round")
+  .attr("d", path(topojson.mesh(us, us.features, (a, b) => a !== b)));
 
-  svg.call(zoom);
+svg.call(zoom);
 
-  function reset() {
-    states.transition().style("fill", null);
+function reset() {
+  states.transition().style("fill", null);
 
-    // 这里已经触发了重置事件
-    const customEvent = new CustomEvent('provinceSelected', {
-      detail: { province: null }
+  // 这里已经触发了重置事件
+  const customEvent = new CustomEvent('provinceSelected', {
+    detail: { province: null }
   });
   document.dispatchEvent(customEvent);
-    svg.transition().duration(750).call(
-      zoom.transform,
-      d3.zoomIdentity,
-      d3.zoomTransform(svg.node()).invert([width / 2, height / 2])
-    );
-  }
+  svg.transition().duration(750).call(
+    zoom.transform,
+    d3.zoomIdentity,
+    d3.zoomTransform(svg.node()).invert([width / 2, height / 2])
+  );
+}
 
-  function clicked(event, d) {
-    const [[x0, y0], [x1, y1]] = path.bounds(d);
-    event.stopPropagation();
-    states.transition().style("fill", null);
-    d3.select(this).transition().style("fill", "red");
-     // 触发自定义事件，传递所选省份名称
-     const customEvent = new CustomEvent('provinceSelected', {
-      detail: { province: d.properties.name }
+function clicked(event, d) {
+  const [[x0, y0], [x1, y1]] = path.bounds(d);
+  event.stopPropagation();
+  states.transition().style("fill", null);
+  d3.select(this).transition().style("fill", "red");
+  // 触发自定义事件，传递所选省份名称
+  const customEvent = new CustomEvent('provinceSelected', {
+    detail: { province: d.properties.name }
   });
   document.dispatchEvent(customEvent);
-  
-    
-    svg.transition().duration(750).call(
-      zoom.transform,
-      d3.zoomIdentity
-        .translate(width / 2, height / 2)
-        .scale(Math.min(8, 0.9 / Math.max((x1 - x0) / width, (y1 - y0) / height)))
-        .translate(-(x0 + x1) / 2, -(y0 + y1) / 2),
-      d3.pointer(event, svg.node())
-    );
-  }
 
-  function zoomed(event) {
-    const {transform} = event;
-    g.attr("transform", transform);
-    g.attr("stroke-width", 1 / transform.k);
-  }
 
-  
+  svg.transition().duration(750).call(
+    zoom.transform,
+    d3.zoomIdentity
+      .translate(width / 2, height / 2)
+      .scale(Math.min(5, 0.9 / Math.max((x1 - x0) / width, (y1 - y0) / height)))
+      .translate(-(x0 + x1) / 2, -(y0 + y1) / 2),
+    d3.pointer(event, svg.node())
+  );
+}
+
+function zoomed(event) {
+  const { transform } = event;
+  g.attr("transform", transform);
+  g.attr("stroke-width", 1 / transform.k);
+}

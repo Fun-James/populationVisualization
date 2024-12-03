@@ -4,9 +4,10 @@ import * as d3 from 'd3';
 const birthRateUrl = new URL('./assets/birthrateProvince.csv', import.meta.url).href;
 const deathRateUrl = new URL('./assets/deathrateProvince.csv', import.meta.url).href;
 
-// 图表尺寸和边距保持不变
-const width = 928;
-const height = 500;
+// 将固定尺寸改为相对尺寸
+const aspectRatio = 928/500; // 保持原始宽高比
+let width = document.querySelector('.bdrate').clientWidth;
+let height = width / aspectRatio;
 const marginTop = 20;
 const marginRight = 30;
 const marginBottom = 30;
@@ -17,7 +18,6 @@ let birthPathElements;
 let deathPathElements;
 let selectedProvince = null;
 
-// 在Promise.all之前添加tooltip
 const tooltip = d3.select("body").append("div")
     .attr("class", "tooltip")
     .style("opacity", 0)
@@ -57,10 +57,10 @@ Promise.all([
     const birthColorScale = d3.scaleSequential()
         .domain([0, birthProvinces.length - 1])
         .interpolator(d3.interpolateRgb("#800000", "#DAA520"));
-    
+
     const deathColorScale = d3.scaleSequential()
         .domain([0, deathProvinces.length - 1])
-        .interpolator(d3.interpolateRgb("#000080", "#87CEEB" )); // 深蓝色到天蓝色
+        .interpolator(d3.interpolateRgb("#000080", "#87CEEB")); // 深蓝色到天蓝色
 
     // 计算y轴域
     const yDomain = [0, Math.max(
@@ -85,10 +85,41 @@ Promise.all([
 
     // 创建SVG
     const svg = d3.create("svg")
-        .attr("width", width)
-        .attr("height", height)
-        .attr("viewBox", [0, 0, width, height])
-        .attr("style", "max-width: 100%; height: auto; height: intrinsic;");
+    .attr("width", "100%")
+    .attr("height", "100%")
+    .attr("preserveAspectRatio", "xMidYMid meet")
+    .attr("viewBox", `0 0 ${width} ${height}`)
+        .attr("style", "max-width: 100%; height: auto; height: intrinsic;")
+        .on("click", function (event) {
+            // 确保点击的是 SVG 本身，而不是其他元素
+            if (event.target === this) {
+                // 重置标题
+                title.text("各省出生率与死亡率变化趋势");
+
+                // 重置所有线条的透明度
+                birthPathElements.transition()
+                    .duration(300)
+                    .attr("opacity", 0.07);
+                deathPathElements.transition()
+                    .duration(300)
+                    .attr("opacity", 0.07);
+
+                // 触发地图重置
+                const mapSvg = d3.select('#map-container').select('svg');
+                if (!mapSvg.empty()) {
+                    // 创建并触发点击事件
+                    const clickEvent = new MouseEvent('click', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window
+                    });
+                    mapSvg.node().dispatchEvent(clickEvent);
+                }
+
+                // 清除选中的省份
+                selectedProvince = null;
+            }
+        });
 
     // 添加标题
     const title = svg.append("text")
@@ -121,58 +152,58 @@ Promise.all([
         .attr("d", d => line(d.values))
         .attr("opacity", 0.07)
         .attr("cursor", "pointer")  // 添加鼠标手型
-    .on("click", (event, d) => {
-        // 查找并触发地图上对应省份的点击
-        const mapState = d3.select('#map-container')
-            .select('svg')
-            .selectAll('path')
-            .filter(p => p && p.properties && p.properties.name === d.province);
-        
-        if (!mapState.empty()) {
-            // 模拟点击事件
-            const clickEvent = new MouseEvent('click', {
-                bubbles: true,
-                cancelable: true,
-                view: window
-            });
-            mapState.node().dispatchEvent(clickEvent);
-        }
-    })
-    .on("mouseover", function(event, d) {
-        // 如果有选中的省份，且当前不是选中的省份，则不显示tooltip
-    if (selectedProvince && d.province !== selectedProvince) {
-        return;
-    }
-        
-        
-        d3.select(this)
-            .attr("stroke-width", 4);
-        
-        const mouseX = event.pageX;
-        const mouseY = event.pageY;
-        
-        // 获取鼠标位置对应的数据点
-        const x0 = x.invert(d3.pointer(event)[0]);
-        const bisect = d3.bisector(d => d.year).left;
-        const i = bisect(d.values, x0);
-        const dataPoint = d.values[i];
-        
-        if (dataPoint) {
+        .on("click", (event, d) => {
+            // 查找并触发地图上对应省份的点击
+            const mapState = d3.select('#map-container')
+                .select('svg')
+                .selectAll('path')
+                .filter(p => p && p.properties && p.properties.name === d.province);
+
+            if (!mapState.empty()) {
+                // 模拟点击事件
+                const clickEvent = new MouseEvent('click', {
+                    bubbles: true,
+                    cancelable: true,
+                    view: window
+                });
+                mapState.node().dispatchEvent(clickEvent);
+            }
+        })
+        .on("mouseover", function (event, d) {
+            // 如果有选中的省份，且当前不是选中的省份，则不显示tooltip
+            if (selectedProvince && d.province !== selectedProvince) {
+                return;
+            }
+
+
+            d3.select(this)
+                .attr("stroke-width", 4);
+
+            const mouseX = event.pageX;
+            const mouseY = event.pageY;
+
+            // 获取鼠标位置对应的数据点
+            const x0 = x.invert(d3.pointer(event)[0]);
+            const bisect = d3.bisector(d => d.year).left;
+            const i = bisect(d.values, x0);
+            const dataPoint = d.values[i];
+
+            if (dataPoint) {
+                tooltip.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                tooltip.html(tooltipContent(d.province, dataPoint.year, dataPoint.value, "出生率"))
+                    .style("left", `${mouseX + 10}px`)  // 水平方向稍微偏移，避免被鼠标遮挡
+                    .style("top", `${mouseY - tooltip.node().getBoundingClientRect().height - 10}px`);  // 垂直方向上移tooltip的高度，再额外偏移10px
+            }
+        })
+        .on("mouseout", function () {
+            d3.select(this)
+                .attr("stroke-width", 2);
             tooltip.transition()
-                .duration(200)
-                .style("opacity", .9);
-            tooltip.html(tooltipContent(d.province, dataPoint.year, dataPoint.value, "出生率"))
-                .style("left", `${mouseX + 10}px`)  // 水平方向稍微偏移，避免被鼠标遮挡
-                .style("top", `${mouseY - tooltip.node().getBoundingClientRect().height - 10}px`);  // 垂直方向上移tooltip的高度，再额外偏移10px
-        }
-    })
-    .on("mouseout", function() {
-        d3.select(this)
-            .attr("stroke-width", 2);
-        tooltip.transition()
-            .duration(500)
-            .style("opacity", 0);
-    });
+                .duration(500)
+                .style("opacity", 0);
+        });
 
     // 绘制死亡率线条
     deathPathElements = svg.append("g")
@@ -188,62 +219,62 @@ Promise.all([
         .attr("d", d => line(d.values))
         .attr("opacity", 0.07)
         .attr("cursor", "pointer")  // 添加鼠标手型
-    .on("click", (event, d) => {
-        // 查找并触发地图上对应省份的点击
-        const mapState = d3.select('#map-container')
-            .select('svg')
-            .selectAll('path')
-            .filter(p => p && p.properties && p.properties.name === d.province);
-        
-        if (!mapState.empty()) {
-            // 模拟点击事件
-            const clickEvent = new MouseEvent('click', {
-                bubbles: true,
-                cancelable: true,
-                view: window
-            });
-            mapState.node().dispatchEvent(clickEvent);
-        }
+        .on("click", (event, d) => {
+            // 查找并触发地图上对应省份的点击
+            const mapState = d3.select('#map-container')
+                .select('svg')
+                .selectAll('path')
+                .filter(p => p && p.properties && p.properties.name === d.province);
+
+            if (!mapState.empty()) {
+                // 模拟点击事件
+                const clickEvent = new MouseEvent('click', {
+                    bubbles: true,
+                    cancelable: true,
+                    view: window
+                });
+                mapState.node().dispatchEvent(clickEvent);
+            }
 
 
-    })
-    .on("mouseover", function(event, d) {
-        // 如果有选中的省份，且当前不是选中的省份，则不显示tooltip
-    if (selectedProvince && d.province !== selectedProvince) {
-        return;
-    }
-        
-        d3.select(this)
-            .attr("stroke-width", 4);
-        
-        const mouseX = event.pageX;
-        const mouseY = event.pageY;
-        
-        const x0 = x.invert(d3.pointer(event)[0]);
-        const bisect = d3.bisector(d => d.year).left;
-        const i = bisect(d.values, x0);
-        const dataPoint = d.values[i];
-        
-        if (dataPoint) {
+        })
+        .on("mouseover", function (event, d) {
+            // 如果有选中的省份，且当前不是选中的省份，则不显示tooltip
+            if (selectedProvince && d.province !== selectedProvince) {
+                return;
+            }
+
+            d3.select(this)
+                .attr("stroke-width", 4);
+
+            const mouseX = event.pageX;
+            const mouseY = event.pageY;
+
+            const x0 = x.invert(d3.pointer(event)[0]);
+            const bisect = d3.bisector(d => d.year).left;
+            const i = bisect(d.values, x0);
+            const dataPoint = d.values[i];
+
+            if (dataPoint) {
+                tooltip.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                tooltip.html(tooltipContent(d.province, dataPoint.year, dataPoint.value, "死亡率"))
+                    .style("left", `${mouseX + 10}px`)  // 水平方向稍微偏移，避免被鼠标遮挡
+                    .style("top", `${mouseY - tooltip.node().getBoundingClientRect().height - 10}px`);  // 垂直方向上移tooltip的高度，再额外偏移10px
+            }
+        })
+        .on("mouseout", function () {
+            d3.select(this)
+                .attr("stroke-width", 2);
             tooltip.transition()
-                .duration(200)
-                .style("opacity", .9);
-            tooltip.html(tooltipContent(d.province, dataPoint.year, dataPoint.value, "死亡率"))
-                .style("left", `${mouseX + 10}px`)  // 水平方向稍微偏移，避免被鼠标遮挡
-                .style("top", `${mouseY - tooltip.node().getBoundingClientRect().height - 10}px`);  // 垂直方向上移tooltip的高度，再额外偏移10px
-        }
-    })
-    .on("mouseout", function() {
-        d3.select(this)
-            .attr("stroke-width", 2);
-        tooltip.transition()
-            .duration(500)
-            .style("opacity", 0);
-    });
+                .duration(500)
+                .style("opacity", 0);
+        });
     // 添加图例
     const legend = svg.append("g")
         .attr("transform", `translate(${width - marginRight - 100}, ${marginTop + 10})`);
-    
+
     legend.append("line")
         .attr("x1", 0)
         .attr("x2", 20)
@@ -251,7 +282,7 @@ Promise.all([
         .attr("y2", 0)
         .attr("stroke", "#800000")
         .attr("stroke-width", 2);
-    
+
     legend.append("line")
         .attr("x1", 0)
         .attr("x2", 20)
@@ -260,12 +291,12 @@ Promise.all([
         .attr("stroke", "#000080")
         .attr("stroke-width", 2)
         .attr("stroke-dasharray", "4,4");
-    
+
     legend.append("text")
         .attr("x", 25)
         .attr("y", 4)
         .text("出生率");
-    
+
     legend.append("text")
         .attr("x", 25)
         .attr("y", 24)
@@ -313,3 +344,4 @@ function processData(data, years) {
     });
     return provinces.sort((a, b) => b.average - a.average);
 }
+
