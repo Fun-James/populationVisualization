@@ -68,7 +68,9 @@ d3.csv(csv).then((data, error) => {
             .range([chartHeight, 0]);
 
         // 创建坐标轴
-        const xAxis = d3.axisBottom(xScale).tickFormat(d3.format("d"));
+        const xAxis = d3.axisBottom(xScale)
+            .tickFormat(d3.format("d"))
+            .ticks(20);
         const yLeftAxis = d3.axisLeft(yLeftScale);
         const yRightAxis = d3.axisRight(yRightScale);
 

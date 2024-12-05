@@ -69,6 +69,7 @@ loadData().then(([data1, data2, data3]) => {
       });
     });
   });
+console.log(combinedData);
 
   createRadioButton();
   updateChart(selectedProvince, selectedLayout);
