@@ -5,11 +5,11 @@ const birthRateUrl = new URL('./assets/birthrateProvince.csv', import.meta.url).
 const deathRateUrl = new URL('./assets/deathrateProvince.csv', import.meta.url).href;
 
 // 将固定尺寸改为相对尺寸
-const aspectRatio = 928/500; // 保持原始宽高比
+const aspectRatio = 800/500; // 保持原始宽高比
 let width = document.querySelector('.bdrate').clientWidth;
 let height = width / aspectRatio;
 const marginTop = 20;
-const marginRight = 30;
+const marginRight = 12;
 const marginBottom = 30;
 const marginLeft = 40;
 
