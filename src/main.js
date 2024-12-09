@@ -6,6 +6,10 @@ import us from './china.geo.json';
 const allPeopleData = new URL('./assets/allpeople.csv', import.meta.url).href;
 const birthRateData = new URL('./assets/birthrateProvince.csv', import.meta.url).href;
 const genderRatioData = new URL('./assets/malefemale.csv', import.meta.url).href;
+let selectedProvince = null;
+// 在文件顶部声明全局变量
+let currentDataMap;
+let currentColorScale;
 
 const width = 800;
 const height = 500;
@@ -70,8 +74,8 @@ Promise.all([
     .domain([95, 120]);
 
   // 默认使用总人数映射
-  let currentDataMap = birthRateMap;
-  let currentColorScale = birthRateColor;
+  currentDataMap = birthRateMap;
+  currentColorScale = birthRateColor;
 
   const states = g.append('g')
     .attr('fill', '#444')
@@ -106,114 +110,114 @@ Promise.all([
   const controlsContainer = d3.select('#controls-container');
   controlsContainer
   controlsContainer
-  .style('display', 'flex')
-  .style('flex-direction', 'column')  // 确保垂直排列
-  .style('gap', '20px')              // 设置间距
-  .style('margin', '20px')           // 调整外边距
-  .style('position', 'relative')
-  .style('width', 'fit-content');    // 确保容器宽度适应内容
+    .style('display', 'flex')
+    .style('flex-direction', 'column')  // 确保垂直排列
+    .style('gap', '20px')              // 设置间距
+    .style('margin', '20px')           // 调整外边距
+    .style('position', 'relative')
+    .style('width', 'fit-content');    // 确保容器宽度适应内容
 
 
 
   // 定义按钮的初始样式
-const buttonStyles = {
-  'display': 'flex',
-  'align-items': 'center',
-  'padding': '8px 15px',
-  'border': '2px solid #e0e0e0',
-  'border-radius': '6px',
-  'cursor': 'pointer',
-  'font-size': '14px',
-  'font-weight': '500',
-  'background-color': '#ffffff',
-  'color': '#555',
-  'transition': 'all 0.2s ease',
-  'box-shadow': '0 2px 4px rgba(0,0,0,0.05)',
-  'user-select': 'none',
-  'width': '100px',  // 添加固定宽度
-  'justify-content': 'center' // 文字居中
-};
+  const buttonStyles = {
+    'display': 'flex',
+    'align-items': 'center',
+    'padding': '8px 15px',
+    'border': '2px solid #e0e0e0',
+    'border-radius': '6px',
+    'cursor': 'pointer',
+    'font-size': '14px',
+    'font-weight': '500',
+    'background-color': '#ffffff',
+    'color': '#555',
+    'transition': 'all 0.2s ease',
+    'box-shadow': '0 2px 4px rgba(0,0,0,0.05)',
+    'user-select': 'none',
+    'width': '100px',  // 添加固定宽度
+    'justify-content': 'center' // 文字居中
+  };
 
-  
-const buttons = [
-  {
-    id: 'totalPopulationBtn',
-    text: '按照总人数映射',
-    onClick: () => {
-      currentDataMap = allPeopleMap;
-      currentColorScale = allPeopleColor;
-      updateMap();
-    }
-  },
-  {
-    id: 'birthRateBtn',
-    text: '按照出生率映射',
-    onClick: () => {
-      currentDataMap = birthRateMap;
-      currentColorScale = birthRateColor;
-      updateMap();
-    }
-  },
-  {
-    id: 'genderRatioBtn',
-    text: '按照男女比例映射',
-    onClick: () => {
-      currentDataMap = genderRatioMap;
-      currentColorScale = genderRatioColor;
-      updateMap();
-    }
-  }
-];
 
-// 创建按钮并应用样式和事件
-buttons.forEach(buttonInfo => {
-  const button = controlsContainer.append('button')
-    .attr('id', buttonInfo.id)
-    .text(buttonInfo.text)
-    .on('click', function() {
-      // 重置所有按钮样式
-      controlsContainer.selectAll('button')
-        .style('background-color', '#ffffff')
-        .style('border-color', '#e0e0e0')
-        .style('color', '#555')
-        .classed('active', false);
-      
-      // 设置当前按钮的选中样式
-      d3.select(this)
-        .style('background-color', '#f0f7ff')
-        .style('border-color', '#3288bd')
-        .style('color', '#3288bd')
-        .classed('active', true);
-      
-      // 执行按钮的点击事件
-      buttonInfo.onClick();
-    })
-    .on('mouseover', function() {
-      d3.select(this)
-        .style('background-color', '#f0f0f0')
-        .style('border-color', '#ccc');
-    })
-    .on('mouseout', function() {
-      if (!d3.select(this).classed('active')) {
-        d3.select(this)
+  const buttons = [
+    {
+      id: 'totalPopulationBtn',
+      text: '按照总人数映射',
+      onClick: () => {
+        currentDataMap = allPeopleMap;
+        currentColorScale = allPeopleColor;
+        updateMap();
+      }
+    },
+    {
+      id: 'birthRateBtn',
+      text: '按照出生率映射',
+      onClick: () => {
+        currentDataMap = birthRateMap;
+        currentColorScale = birthRateColor;
+        updateMap();
+      }
+    },
+    {
+      id: 'genderRatioBtn',
+      text: '按照男女比例映射',
+      onClick: () => {
+        currentDataMap = genderRatioMap;
+        currentColorScale = genderRatioColor;
+        updateMap();
+      }
+    }
+  ];
+
+  // 创建按钮并应用样式和事件
+  buttons.forEach(buttonInfo => {
+    const button = controlsContainer.append('button')
+      .attr('id', buttonInfo.id)
+      .text(buttonInfo.text)
+      .on('click', function () {
+        // 重置所有按钮样式
+        controlsContainer.selectAll('button')
           .style('background-color', '#ffffff')
           .style('border-color', '#e0e0e0')
-          .style('color', '#555');
-      }
-    });
-  
-  // 应用初始样式
-  Object.entries(buttonStyles).forEach(([key, value]) => {
-    button.style(key, value);
-  });
-});
+          .style('color', '#555')
+          .classed('active', false);
 
-// 设置默认选中的按钮（例如，第一个按钮）
-controlsContainer.select('#birthRateBtn')  
-  .classed('active', true)
-  .style('background-color', '#f0f7ff')
-  .style('border-color', '#3288bd')
-  .style('color', '#3288bd');
+        // 设置当前按钮的选中样式
+        d3.select(this)
+          .style('background-color', '#f0f7ff')
+          .style('border-color', '#3288bd')
+          .style('color', '#3288bd')
+          .classed('active', true);
+
+        // 执行按钮的点击事件
+        buttonInfo.onClick();
+      })
+      .on('mouseover', function () {
+        d3.select(this)
+          .style('background-color', '#f0f0f0')
+          .style('border-color', '#ccc');
+      })
+      .on('mouseout', function () {
+        if (!d3.select(this).classed('active')) {
+          d3.select(this)
+            .style('background-color', '#ffffff')
+            .style('border-color', '#e0e0e0')
+            .style('color', '#555');
+        }
+      });
+
+    // 应用初始样式
+    Object.entries(buttonStyles).forEach(([key, value]) => {
+      button.style(key, value);
+    });
+  });
+
+  // 设置默认选中的按钮（例如，第一个按钮）
+  controlsContainer.select('#birthRateBtn')
+    .classed('active', true)
+    .style('background-color', '#f0f7ff')
+    .style('border-color', '#3288bd')
+    .style('color', '#3288bd');
 
   function updateMap() {
     states.transition()
@@ -233,12 +237,26 @@ controlsContainer.select('#birthRateBtn')
 
   function clicked(event, d) {
     event.stopPropagation();
+     // 如果之前有选中的省份，恢复其颜色
+  if (selectedProvince) {
+    selectedProvince
+      .attr('fill', d => {
+        const provinceName = normalizeProvinceName(selectedProvince.datum().properties.name);
+        const value = currentDataMap.get(provinceName);
+        return value ? currentColorScale(value) : '#ccc';
+      });
+  }
+
+  // 将当前点击的省份设为选中的省份，并修改其颜色为灰色
+  selectedProvince = d3.select(this);
+  selectedProvince.attr('fill', '#999999');
+
     const [[x0, y0], [x1, y1]] = path.bounds(d);
     // 触发自定义事件，传递所选省份名称
-  const customEvent = new CustomEvent('provinceSelected', {
-    detail: { province: d.properties.name }
-  });
-  document.dispatchEvent(customEvent);
+    const customEvent = new CustomEvent('provinceSelected', {
+      detail: { province: d.properties.name }
+    });
+    document.dispatchEvent(customEvent);
     svg.transition().duration(750).call(
       zoom.transform,
       d3.zoomIdentity
@@ -257,9 +275,25 @@ function zoomed(event) {
 }
 function reset(event) {
   event.stopPropagation();
+  // 如果有选中的省份，恢复其颜色
+  if (selectedProvince) {
+    selectedProvince
+      .attr('fill', d => {
+        const provinceName = normalizeProvinceName(selectedProvince.datum().properties.name);
+        const value = currentDataMap.get(provinceName);
+        return value ? currentColorScale(value) : '#ccc';
+      });
+    selectedProvince = null;
+     // 触发重置事件，传递 null 表示没有省份被选中
+     const customEvent = new CustomEvent('provinceSelected', {
+      detail: { province: null }
+    });
+    document.dispatchEvent(customEvent);
+  }
   svg.transition().duration(750).call(
     zoom.transform,
     d3.zoomIdentity,
     d3.zoomTransform(svg.node()).invert([width / 2, height / 2])
   );
+  
 }
