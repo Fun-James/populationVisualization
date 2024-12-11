@@ -73,13 +73,21 @@ Promise.all([
   });
 
   const migrationMap = new Map();
-  migration.forEach(d => {
-    const province = normalizeProvinceName(d['地区']);
-    // 计算各地区迁出人数之和
-    const totalMigration = ['华北', '东北', '华东', '中南', '西南', '西北']
-      .reduce((sum, region) => sum + (+d[region]), 0);
-    migrationMap.set(province, totalMigration);
-  });
+migration.forEach(d => {
+  const province = normalizeProvinceName(d['地区']);
+  // 计算各地区迁出人数之和
+  const totalMigration = ['华北', '东北', '华东', '中南', '西南', '西北']
+    .reduce((sum, region) => sum + (+d[region]), 0);
+    
+  // 获取该省份的总人口（单位：万人）
+  const totalPopulation = allPeopleMap.get(province);
+  
+  // 计算迁出人数占总人口的比例 (‰)
+  // 由于迁出人数是具体人数，总人口是万人，需要进行单位转换
+  const migrationRate = totalPopulation ? (totalMigration / (totalPopulation * 10000)) * 1000 : 0;
+  
+  migrationMap.set(province, migrationRate);
+});
 
   // 定义颜色比例尺
   const allPeopleColor = d3.scaleSequential(d3.interpolateBlues)
@@ -92,7 +100,8 @@ Promise.all([
     .domain([95, 120]);
 
     const migrationColor = d3.scaleSequential(d3.interpolatePurples)
-    .domain([0, d3.max([...migrationMap.values()])]);
+  .domain([0, d3.max([...migrationMap.values()])]);
+
 
   // 默认使用总人数映射
   currentDataMap = birthRateMap;
@@ -190,7 +199,7 @@ Promise.all([
     },
     {
       id: 'migrationBtn',
-      text: '按照迁出人数映射',
+      text: '按照迁出率映射',
       onClick: () => {
         currentDataMap = migrationMap;
         currentColorScale = migrationColor;
@@ -274,7 +283,7 @@ Promise.all([
       } else if (buttonInfo.id === 'genderRatioBtn') {
         createLegend(genderRatioColor, '性别比');
       }else if (buttonInfo.id === 'migrationBtn') {
-        createLegend(migrationColor, '迁出人数');
+        createLegend(migrationColor, '迁出率 (‰)');
       }
         // 执行按钮的点击事件
         buttonInfo.onClick();
