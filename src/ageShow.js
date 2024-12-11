@@ -1,21 +1,46 @@
 import * as d3 from 'd3';
 
 let combinedData = [];
-let combinedData2=[];
-let selectedProvince = "北京市"; 
-let selectedLayout = "stacked"; 
+let combinedData2 = [];
+let selectedProvince = "北京市";
+let selectedLayout = "grouped";
+
+const tooltip = d3.select("body").append("div")
+  .attr("class", "tooltip")
+  .style("opacity", 0)
+  .style("position", "absolute")
+  .style("background-color", "rgba(255, 255, 255, 0.95)")
+  .style("border", "1px solid #ccc")
+  .style("border-radius", "5px")
+  .style("padding", "8px 12px")
+  .style("box-shadow", "2px 2px 6px rgba(0, 0, 0, 0.2)")
+  .style("font-family", "'Microsoft YaHei', sans-serif")
+  .style("font-size", "14px")
+  .style("line-height", "1.4")
+  .style("pointer-events", "none")
+  .style("z-index", "100")
+  .style("min-width", "150px");
+
+// 定义 tooltip 内容格式
+const tooltipContent = (province, year, value, type) => `
+    <div style="font-weight: bold; color: #333; margin-bottom: 4px;">${province}</div>
+    <div style="color: #666;">年份: ${year}</div>
+    <div style="color: #666;">${type}: <span style="color: #e4393c; font-weight: bold;">${value}</span></div>
+`;
+
+
 
 function createRadioButton() {
   const buttonContainer = document.getElementById('button-container')
   buttonContainer.style.position = 'relative';
   buttonContainer.style.margin = '-35px 60px 15px';
-  
+
   const form = document.createElement('form');
   form.style.display = 'flex';
   form.style.gap = '15px';
-  
+
   const options = ["Stacked", "Grouped"];
-  
+
   options.forEach((label) => {
     const radioLabel = document.createElement('label');
     Object.assign(radioLabel.style, {
@@ -33,7 +58,7 @@ function createRadioButton() {
       boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
       userSelect: 'none'
     });
-    
+
     const radio = document.createElement('input');
     radio.type = 'radio';
     radio.name = 'layout';
@@ -42,23 +67,23 @@ function createRadioButton() {
       marginRight: '8px',
       cursor: 'pointer'
     });
-    
-    if (label === "Stacked") radio.checked = true;
-    
+
+    if (label === "Grouped") radio.checked = true;
+
     radioLabel.appendChild(radio);
     radioLabel.appendChild(document.createTextNode(label));
-    
+
     // 添加悬停效果
     radioLabel.addEventListener('mouseover', () => {
       radioLabel.style.backgroundColor = '#f0f0f0';
       radioLabel.style.borderColor = '#ccc';
     });
-    
+
     radioLabel.addEventListener('mouseout', () => {
       radioLabel.style.backgroundColor = '#ffffff';
       radioLabel.style.borderColor = '#e0e0e0';
     });
-    
+
     // 选中状态样式
     radio.addEventListener('change', () => {
       form.querySelectorAll('label').forEach(l => {
@@ -72,7 +97,7 @@ function createRadioButton() {
         radioLabel.style.color = '#3288bd';
       }
     });
-    
+
     form.appendChild(radioLabel);
   });
 
@@ -82,7 +107,7 @@ function createRadioButton() {
     selectedLayout = event.target.value;
     updateChart(selectedProvince, selectedLayout);
   });
-  
+
   // 初始化选中状态样式
   const firstRadio = form.querySelector('input[type="radio"]:checked');
   if (firstRadio) {
@@ -113,7 +138,7 @@ loadData2().then(([allPeopleData, maleFemaleData]) => {
       const ratio = maleFemaleData.find(record => record['地区'] === region); // 查找对应的性别比例数据
       if (ratio) {
         const maleRatio = parseFloat(ratio[year]); // 获取该地区该年份的性别比例（男对女）
-        
+
         // 计算男性和女性比例
         const femaleRatio = 100; // 女性默认是100
         const male = Math.round(total * maleRatio / (maleRatio + femaleRatio)); // 计算男性人数
@@ -133,6 +158,7 @@ loadData2().then(([allPeopleData, maleFemaleData]) => {
 }).catch((error) => {
   console.error('Error loading data:', error);
 });
+
 
 
 const csvurl1 = new URL('./assets/child.csv', import.meta.url).href;
@@ -179,9 +205,9 @@ loadData().then(([data1, data2, data3, totalPopulation]) => {
 
 
 
-
 function updateChart(province, layout = "stacked") {
-
+  // 在 updateChart 函数开始处添加一个判断是否首次创建的标志
+  const isFirstRender = d3.select('#ageshow-container .y-axis-left').empty();
   const container = document.getElementById('ageshow-container');
   const containerRect = container.getBoundingClientRect();
 
@@ -208,35 +234,42 @@ function updateChart(province, layout = "stacked") {
   // 1. 获取所有省份的最大 total 值
   const globalMaxTotal = d3.max(combinedData2, d => d.male + d.female);
 
+  const totalPopulation = d3.max(
+    combinedData2,
+    d => (d.region === province ? d.male + d.female : -Infinity)
+  );
+
+
+
   // 2. 使用这个 globalMaxTotal 来设置 yLeft 比例尺的最大值
   const yLeft = d3.scaleLinear()
-    .domain([0, globalMaxTotal])  // 使用所有省份的最大值
+    .domain([0, totalPopulation * 1.1])  // 使用所有省份的最大值
     .range([height, 0]);
-  
+
   // 1. 准备包含总人数、男性和女性数据的数组
   const maleFemaleData = combinedData2.filter(d => d.region === province).map(d => ({
     year: d.year,
     total: d.male + d.female,  // 计算总人数
-    male: d.male/(d.male + d.female),  // 男性比例
-    female: d.female/(d.male + d.female)  // 女性比例
+    male: d.male / (d.male + d.female),  // 男性比例
+    female: d.female / (d.male + d.female)  // 女性比例
   }));
-  
+
   const femaleMin = d3.min(maleFemaleData, d => d.female);  // 女性比例的最小值
   const maleMax = d3.max(maleFemaleData, d => d.male);  // 男性比例的最大值
   // 右侧 y 轴比例尺 - 表示男或女占总人数比例
   const yRight = d3.scaleLinear()
-  .domain([0.45, 0.55])  
-  .range([height * 0.4, 0]);  // 将 height 改为 height * 0.4，这样折线图只占用上面40%的空间
+    .domain([0.45, 0.55])
+    .range([height * 0.4, 0]);  // 将 height 改为 height * 0.4，这样折线图只占用上面40%的空间
 
 
   const color = d3.scaleOrdinal()
     .domain(["儿童", "成年", "老年"])
-    .range(["#abdda4","#fee08b", "rgba(244, 109, 67, 0.5)"]);
+    .range(["#abdda4", "#fee08b", "rgba(244, 109, 67, 0.5)"]);
   const svg1 = d3.select('#ageshow-container svg');
- // 如果存在则移除
- if (!svg1.empty()) {
-  svg1.remove();
-}
+  // 如果存在则移除
+  if (!svg1.empty()) {
+    svg1.remove();
+  }
 
   const svg = d3.select('#ageshow-container')
     .append('svg')
@@ -262,117 +295,156 @@ function updateChart(province, layout = "stacked") {
 
 
 
-// 2. 创建折线生成器
+  // 2. 创建折线生成器
 
-const lineMale = d3.line()
-  .x(d => x(d.year) + x.bandwidth() / 2)  // 将折线的 x 值设置在每个柱子的中间
-  .y(d => yRight(d.male));  // 使用全局最大值来调整 y 坐标
+  const lineMale = d3.line()
+    .x(d => x(d.year) + x.bandwidth() / 2)  // 将折线的 x 值设置在每个柱子的中间
+    .y(d => yRight(d.male));  // 使用全局最大值来调整 y 坐标
 
-const lineFemale = d3.line()
-  .x(d => x(d.year) + x.bandwidth() / 2)  // 将折线的 x 值设置在每个柱子的中间
-  .y(d => yRight(d.female));  // 使用全局最大值来调整 y 坐标
+  const lineFemale = d3.line()
+    .x(d => x(d.year) + x.bandwidth() / 2)  // 将折线的 x 值设置在每个柱子的中间
+    .y(d => yRight(d.female));  // 使用全局最大值来调整 y 坐标
 
-// 3. 绘制两条折线
+  // 3. 绘制两条折线
 
-svg.append('path')
-  .data([maleFemaleData])
-  .attr('class', 'line-male')
-  .attr('d', lineMale)
-  .style('fill', 'none')
-  .style('stroke', '#3288bd')  // 蓝色
-  .style('stroke-width', 2);
-
-svg.append('path')
-  .data([maleFemaleData])
-  .attr('class', 'line-female')
-  .attr('d', lineFemale)
-  .style('fill', 'none')
-  .style('stroke', '#e72c41')  // 粉色
-  .style('stroke-width', 2);
+  svg.append('path')
+    .data([maleFemaleData])
+    .attr('class', 'line-male')
+    .attr('d', lineMale)
+    .style('fill', 'none')
+    .style('stroke', '#3288bd')  // 蓝色
+    .style('stroke-width', 2);
 
 
+  svg.selectAll('.dot-male')
+    .data(maleFemaleData)
+    .enter().append('circle')
+    .attr('class', 'dot-male')
+    .attr('cx', d => x(d.year) + x.bandwidth() / 2)
+    .attr('cy', d => yRight(d.male))
+    .attr('r', 3)
+    .style('fill', '#3288bd')
+    .on("mouseover", function (event, d) {
+      tooltip.html(tooltipContent(province, d.year, (d.male * 100).toFixed(2) + '%', '男性比例'))
+        .style('left', (event.pageX + 10) + 'px')
+        .style('top', (event.pageY - 28) + 'px')
+        .style('opacity', 1);
+    })
+    .on("mouseout", function () {
+      tooltip.style('opacity', 0);
+    });
+
+  svg.append('path')
+    .data([maleFemaleData])
+    .attr('class', 'line-female')
+    .attr('d', lineFemale)
+    .style('fill', 'none')
+    .style('stroke', '#e72c41')  // 粉色
+    .style('stroke-width', 2);
+
+  svg.selectAll('.dot-female')
+    .data(maleFemaleData)
+    .enter().append('circle')
+    .attr('class', 'dot-female')
+    .attr('cx', d => x(d.year) + x.bandwidth() / 2)
+    .attr('cy', d => yRight(d.female))
+    .attr('r', 3)
+    .style('fill', '#e72c41')
+    .on("mouseover", function (event, d) {
+      tooltip.html(tooltipContent(province, d.year, (d.female * 100).toFixed(2) + '%', '女性比例'))
+        .style('left', (event.pageX + 10) + 'px')
+        .style('top', (event.pageY - 28) + 'px')
+        .style('opacity', 1);
+    })
+    .on("mouseout", function () {
+      tooltip.style('opacity', 0);
+    });
 
   // 添加坐标轴
   svg.append('g')
     .attr('class', 'x-axis')
     .attr('transform', `translate(0,${height})`)
-    .call(d3.axisBottom(x).tickFormat(d => d.slice(2)));
+    .call(d3.axisBottom(x));
 
   // 左侧 y 轴 - 表示男女总人数
   svg.append('g')
     .attr('class', 'y-axis-left')
+    .transition()    // 添加过渡
+    .duration(750)   // 设置动画时长
+    .ease(d3.easeElastic)  // 使用线性过渡效果
     .call(d3.axisLeft(yLeft));
+
   // 右侧 y 轴 - 表示男女所占总人数比例
   svg.append('g')
-  .attr('class', 'y-axis-right')
-  .attr('transform', `translate(${width}, 0)`)
-  .call(d3.axisRight(yRight).tickFormat(d3.format('.0%')));
+    .attr('class', 'y-axis-right')
+    .attr('transform', `translate(${width}, 0)`)
+    .call(d3.axisRight(yRight).tickFormat(d3.format('.0%')));
 
 
- 
-// 添加男女折线颜色图例
-const lineLegend = svg.append('g')
-.attr('class', 'line-legend')
-.attr('transform', `translate(${width + 40}, ${60})`);  // 向下偏移 60，距离原图例下方
 
-// 男性折线颜色图例
-lineLegend.append('line')
-.attr('x1', 0)
-.attr('y1', 0)
-.attr('x2', 20)
-.attr('y2', 0)
-.style('stroke', '#3288bd')  // 蓝色表示男性
-.style('stroke-width', 2);
+  // 添加男女折线颜色图例
+  const lineLegend = svg.append('g')
+    .attr('class', 'line-legend')
+    .attr('transform', `translate(${width + 40}, ${60})`);  // 向下偏移 60，距离原图例下方
 
-// 女性折线颜色图例
-lineLegend.append('line')
-.attr('x1', 0)
-.attr('y1', 15)
-.attr('x2', 20)
-.attr('y2', 15)
-.style('stroke', '#d53e4f')  // 粉色表示女性
-.style('stroke-width', 2);
+  // 男性折线颜色图例
+  lineLegend.append('line')
+    .attr('x1', 0)
+    .attr('y1', 0)
+    .attr('x2', 20)
+    .attr('y2', 0)
+    .style('stroke', '#3288bd')  // 蓝色表示男性
+    .style('stroke-width', 2);
 
-// 添加图例标签
-lineLegend.selectAll('text')
-.data(['男性', '女性'])
-.enter().append('text')
-.attr('x', 24)
-.attr('y', (d, i) => i * 20  )  // 调整文字位置，避免重叠
-.text(d => d)
-.style('font-size', '12px')
-.attr('alignment-baseline', 'middle');
+  // 女性折线颜色图例
+  lineLegend.append('line')
+    .attr('x1', 0)
+    .attr('y1', 15)
+    .attr('x2', 20)
+    .attr('y2', 15)
+    .style('stroke', '#d53e4f')  // 粉色表示女性
+    .style('stroke-width', 2);
 
- // 添加图例
- const legend = svg.append('g')
- .attr('class', 'legend')
- .attr('transform', `translate(${width + 40}, 200)`);
- 
- // 添加儿童、成年、老年图例
- legend.selectAll('rect')
- .data(["儿童", "成年", "老年"])
- .enter().append('rect')
- .attr('y', (d, i) => i * 20)
- .attr('width', 12)
- .attr('height', 12)
- .style('fill', d => color(d));
- 
- legend.selectAll('text')
- .data(["儿童", "成年", "老年"])
- .enter().append('text')
- .attr('x', 24)
- .attr('y', (d, i) => i * 20 + 9)
- .text(d => d)
- .style('font-size', '12px')
- .attr('alignment-baseline', 'middle');
- 
+  // 添加图例标签
+  lineLegend.selectAll('text')
+    .data(['男性', '女性'])
+    .enter().append('text')
+    .attr('x', 24)
+    .attr('y', (d, i) => i * 20)  // 调整文字位置，避免重叠
+    .text(d => d)
+    .style('font-size', '12px')
+    .attr('alignment-baseline', 'middle');
+
+  // 添加图例
+  const legend = svg.append('g')
+    .attr('class', 'legend')
+    .attr('transform', `translate(${width + 40}, 200)`);
+
+  // 添加儿童、成年、老年图例
+  legend.selectAll('rect')
+    .data(["0-14", "15-64", "65+"])
+    .enter().append('rect')
+    .attr('y', (d, i) => i * 20)
+    .attr('width', 12)
+    .attr('height', 12)
+    .style('fill', d => color(d));
+
+  legend.selectAll('text')
+    .data(["0-14", "15-64", "65+"])
+    .enter().append('text')
+    .attr('x', 24)
+    .attr('y', (d, i) => i * 20 + 9)
+    .text(d => d)
+    .style('font-size', '12px')
+    .attr('alignment-baseline', 'middle');
+
   // 实现布局切换动画
   function transitionGrouped() {
 
     bars.transition()
       .duration(500)
       .delay((d, i) => i * 20)
-      .attr('x', function(d, i) {
+      .attr('x', function (d, i) {
         const layerIndex = this.parentNode.__data__.index;
         return x(years[i]) + (x.bandwidth() / n) * layerIndex;
       })
@@ -391,18 +463,23 @@ lineLegend.selectAll('text')
     bars.transition()
       .duration(500)
       .delay((d, i) => i * 20)
-      .attr('x', (d, i) => x(years[i]))
-      .attr('width', x.bandwidth())
+      .attr('y', d => yLeft(d[1]))  // 更新 Y 位置
+      .attr('height', d => yLeft(d[0]) - yLeft(d[1]))  // 更新条形的高度
       .transition()
-      .attr('y', d => yLeft(d[1]))
-      .attr('height', d => yLeft(d[0]) - yLeft(d[1]));
-  
+        .attr("x", (d, i) => {
+          return x(years[i]);
+        })
+        .attr("width", x.bandwidth())
+      .ease(d3.easeCubicOut);
+
     svg.select('.y-axis-left')
       .transition()
       .duration(500)
-      .call(d3.axisLeft(yLeft));
+      .call(d3.axisLeft(yLeft));  // 更新 Y 轴
   }
-  
+
+
+
   // 根据当前布局执行相应的过渡
   if (layout === "grouped") {
     transitionGrouped();
@@ -417,7 +494,3 @@ document.addEventListener('provinceSelected', (event) => {
   selectedProvince = event.detail.province;
   updateChart(selectedProvince, selectedLayout);
 });
-
-
-
-

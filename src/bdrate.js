@@ -5,7 +5,7 @@ const birthRateUrl = new URL('./assets/birthrateProvince.csv', import.meta.url).
 const deathRateUrl = new URL('./assets/deathrateProvince.csv', import.meta.url).href;
 
 // 将固定尺寸改为相对尺寸
-const aspectRatio = 800/500; // 保持原始宽高比
+const aspectRatio = 800 / 500; // 保持原始宽高比
 let width = document.querySelector('.bdrate').clientWidth;
 let height = width / aspectRatio;
 const marginTop = 20;
@@ -85,10 +85,10 @@ Promise.all([
 
     // 创建SVG
     const svg = d3.create("svg")
-    .attr("width", "100%")
-    .attr("height", "100%")
-    .attr("preserveAspectRatio", "xMidYMid meet")
-    .attr("viewBox", `0 0 ${width} ${height}`)
+        .attr("width", "100%")
+        .attr("height", "100%")
+        .attr("preserveAspectRatio", "xMidYMid meet")
+        .attr("viewBox", `0 0 ${width} ${height}`)
         .attr("style", "max-width: 100%; height: auto; height: intrinsic;")
         .on("click", function (event) {
             // 确保点击的是 SVG 本身，而不是其他元素
@@ -308,6 +308,8 @@ Promise.all([
     // 更新交互事件
     document.addEventListener('provinceSelected', (event) => {
         selectedProvince = event.detail.province;
+        // 移除已有的填充区域
+        svg.selectAll('.fill-area').remove();
 
         if (!selectedProvince) {
             title.text("各省出生率与死亡率变化趋势");
@@ -325,6 +327,88 @@ Promise.all([
             deathPathElements.transition()
                 .duration(300)
                 .attr("opacity", d => d.province === selectedProvince ? 1 : 0.07);
+
+            // 获取选中省份的数据
+            const birthData = birthProvinces.find(d => d.province === selectedProvince);
+            const deathData = deathProvinces.find(d => d.province === selectedProvince);
+
+            // 创建填充区域生成器
+            const areaGenerator = d3.area()
+                .x(d => x(d.year))
+                .y0(d => y(d.birthRate))
+                .y1(d => y(d.deathRate));
+
+            // 合并数据以创建填充区域
+            const fillData = years.map(year => {
+                const birthValue = birthData.values.find(v => v.year === year).value;
+                const deathValue = deathData.values.find(v => v.year === year).value;
+                return {
+                    year: year,
+                    birthRate: birthValue,
+                    deathRate: deathValue
+                };
+            });
+
+            // 分段绘制填充区域
+            // 修改 fillData.forEach 部分的代码如下：
+            fillData.forEach((d, i) => {
+                if (i === 0) return; // 跳过第一个点
+
+                const prev = fillData[i - 1];
+                const curr = d;
+
+                // 检查是否存在交叉点
+                const prevDiff = prev.birthRate - prev.deathRate;
+                const currDiff = curr.birthRate - curr.deathRate;
+
+                // 如果存在交叉点（差值正负号不同）
+                if (prevDiff * currDiff < 0) {
+                    // 计算交叉点
+                    const ratio = Math.abs(prevDiff) / (Math.abs(prevDiff) + Math.abs(currDiff));
+                    const crossYear = prev.year + (curr.year - prev.year) * ratio;
+
+                    // 使用线性插值计算交叉点的值
+                    const crossValue = prev.birthRate + (curr.birthRate - prev.birthRate) * ratio;
+
+                    // 创建交叉点数据
+                    const crossPoint = {
+                        year: crossYear,
+                        birthRate: crossValue,
+                        deathRate: crossValue
+                    };
+
+                    // 分别绘制交叉点前后的区域
+                    // 交叉点之前的区域
+                    svg.append('path')
+                        .attr('class', 'fill-area')
+                        .datum([prev, crossPoint])
+                        .attr('fill', prevDiff > 0 ?
+                            'rgba(144, 238, 144, 0.3)' : // 浅绿色表示人口增长
+                            'rgba(255, 182, 193, 0.3)')  // 浅红色表示人口减少
+                        .attr('d', areaGenerator);
+
+                    // 交叉点之后的区域
+                    svg.append('path')
+                        .attr('class', 'fill-area')
+                        .datum([crossPoint, curr])
+                        .attr('fill', currDiff > 0 ?
+                            'rgba(144, 238, 144, 0.3)' :
+                            'rgba(255, 182, 193, 0.3)')
+                        .attr('d', areaGenerator);
+                } else {
+                    // 如果没有交叉点，按原来的方式处理
+                    const segmentData = [prev, curr];
+                    const fillColor = prevDiff > 0 ?
+                        'rgba(144, 238, 144, 0.3)' :
+                        'rgba(255, 182, 193, 0.3)';
+
+                    svg.append('path')
+                        .attr('class', 'fill-area')
+                        .datum(segmentData)
+                        .attr('fill', fillColor)
+                        .attr('d', areaGenerator);
+                }
+            });
         }
     });
 });

@@ -6,6 +6,8 @@ import us from './china.geo.json';
 const allPeopleData = new URL('./assets/allpeople.csv', import.meta.url).href;
 const birthRateData = new URL('./assets/birthrateProvince.csv', import.meta.url).href;
 const genderRatioData = new URL('./assets/malefemale.csv', import.meta.url).href;
+const migrationData = new URL('./assets/migration.csv', import.meta.url).href;
+
 let selectedProvince = null;
 // 在文件顶部声明全局变量
 let currentDataMap;
@@ -30,6 +32,12 @@ const svg = d3.select('#map-container').append('svg')
   .attr('style', 'max-width: 100%; height: auto;')
   .on('click', reset); // 确保绑定了点击事件
 
+// 在 svg 定义之后添加图例容器
+const legend = svg.append('g')
+  .attr('class', 'legend')
+  .attr('transform', `translate(20, 50)`); // 放置在左侧
+
+
 const path = d3.geoPath().projection(projection);
 
 const g = svg.append('g');
@@ -42,8 +50,9 @@ function normalizeProvinceName(name) {
 Promise.all([
   d3.csv(allPeopleData),
   d3.csv(birthRateData),
-  d3.csv(genderRatioData)
-]).then(([allPeople, birthRate, genderRatio]) => {
+  d3.csv(genderRatioData),
+  d3.csv(migrationData)
+]).then(([allPeople, birthRate, genderRatio,migration]) => {
   // 创建数据映射
   const allPeopleMap = new Map();
   allPeople.forEach(d => {
@@ -63,6 +72,15 @@ Promise.all([
     genderRatioMap.set(province, +d['2023']);
   });
 
+  const migrationMap = new Map();
+  migration.forEach(d => {
+    const province = normalizeProvinceName(d['地区']);
+    // 计算各地区迁出人数之和
+    const totalMigration = ['华北', '东北', '华东', '中南', '西南', '西北']
+      .reduce((sum, region) => sum + (+d[region]), 0);
+    migrationMap.set(province, totalMigration);
+  });
+
   // 定义颜色比例尺
   const allPeopleColor = d3.scaleSequential(d3.interpolateBlues)
     .domain([2000, 12000]);
@@ -72,6 +90,9 @@ Promise.all([
 
   const genderRatioColor = d3.scaleSequential(d3.interpolateGreens)
     .domain([95, 120]);
+
+    const migrationColor = d3.scaleSequential(d3.interpolatePurples)
+    .domain([0, d3.max([...migrationMap.values()])]);
 
   // 默认使用总人数映射
   currentDataMap = birthRateMap;
@@ -112,7 +133,7 @@ Promise.all([
   controlsContainer
     .style('display', 'flex')
     .style('flex-direction', 'column')  // 确保垂直排列
-    .style('gap', '20px')              // 设置间距
+    .style('gap', '10px')              // 设置间距
     .style('margin', '20px')           // 调整外边距
     .style('position', 'relative')
     .style('width', 'fit-content');    // 确保容器宽度适应内容
@@ -166,8 +187,64 @@ Promise.all([
         currentColorScale = genderRatioColor;
         updateMap();
       }
+    },
+    {
+      id: 'migrationBtn',
+      text: '按照迁出人数映射',
+      onClick: () => {
+        currentDataMap = migrationMap;
+        currentColorScale = migrationColor;
+        updateMap();
+      }
     }
   ];
+
+
+  function createLegend(scale, title) {
+    // 清除现有图例
+    legend.selectAll('*').remove();
+    
+    // 创建渐变矩形
+    const height = 380;
+    const width = 20;
+    
+    // 添加标题
+    legend.append('text')
+      .attr('class', 'legend-title')
+      .attr('x', 0)
+      .attr('y', -10)
+      .style('font-size', '12px')
+      .text(title);
+  
+    // 创建颜色条
+    const legendScale = d3.scaleLinear()
+      .domain(scale.domain())
+      .range([0, height]);
+  
+    // 添加矩形渐变
+    const numStops = 20;
+    const dataPoints = d3.range(numStops).map(i => 
+      scale.domain()[0] + (i / (numStops-1)) * (scale.domain()[1] - scale.domain()[0])
+    );
+  
+    legend.selectAll('rect')
+      .data(dataPoints)
+      .enter()
+      .append('rect')
+      .attr('x', 0)
+      .attr('y', (d, i) => (i * (height / numStops)))
+      .attr('width', width)
+      .attr('height', height / numStops + 1)
+      .style('fill', d => scale(d));
+  
+    // 添加刻度
+    const axis = d3.axisRight(legendScale)
+      .ticks(5);
+  
+    legend.append('g')
+      .attr('transform', `translate(${width}, 0)`)
+      .call(axis);
+  }
 
   // 创建按钮并应用样式和事件
   buttons.forEach(buttonInfo => {
@@ -189,6 +266,16 @@ Promise.all([
           .style('color', '#3288bd')
           .classed('active', true);
 
+            // 更新图例
+      if (buttonInfo.id === 'totalPopulationBtn') {
+        createLegend(allPeopleColor, '总人口 (万人)');
+      } else if (buttonInfo.id === 'birthRateBtn') {
+        createLegend(birthRateColor, '出生率 (‰)');
+      } else if (buttonInfo.id === 'genderRatioBtn') {
+        createLegend(genderRatioColor, '性别比');
+      }else if (buttonInfo.id === 'migrationBtn') {
+        createLegend(migrationColor, '迁出人数');
+      }
         // 执行按钮的点击事件
         buttonInfo.onClick();
       })
@@ -211,6 +298,9 @@ Promise.all([
       button.style(key, value);
     });
   });
+  
+// 初始化默认图例(出生率)
+createLegend(birthRateColor, '出生率 (‰)');
 
   // 设置默认选中的按钮（例如，第一个按钮）
   controlsContainer.select('#birthRateBtn')
@@ -237,19 +327,31 @@ Promise.all([
 
   function clicked(event, d) {
     event.stopPropagation();
-     // 如果之前有选中的省份，恢复其颜色
-  if (selectedProvince) {
-    selectedProvince
-      .attr('fill', d => {
-        const provinceName = normalizeProvinceName(selectedProvince.datum().properties.name);
-        const value = currentDataMap.get(provinceName);
-        return value ? currentColorScale(value) : '#ccc';
-      });
-  }
+ // 隐藏图例，添加过渡效果
+ legend.transition()
+ .duration(750)
+ .style('opacity', 0)
+ .on('end', function() {
+     legend.style('display', 'none');
+ });
 
-  // 将当前点击的省份设为选中的省份，并修改其颜色为灰色
-  selectedProvince = d3.select(this);
-  selectedProvince.attr('fill', '#999999');
+    // 如果之前有选中的省份，恢复其颜色
+    if (selectedProvince) {
+      selectedProvince
+        .attr('fill', d => {
+          const provinceName = normalizeProvinceName(selectedProvince.datum().properties.name);
+          const value = currentDataMap.get(provinceName);
+          return value ? currentColorScale(value) : '#ccc';
+        })
+        .attr('stroke', null)  // 移除描边
+            .attr('stroke-width', null);
+        ;
+    }
+
+    // 将当前点击的省份设为选中的省份，并修改其颜色为灰色
+    selectedProvince = d3.select(this);
+    selectedProvince.attr('stroke', '#FFD700')  // 添加白色描边
+      .attr('stroke-width', '2px');  // 设置描边宽度
 
     const [[x0, y0], [x1, y1]] = path.bounds(d);
     // 触发自定义事件，传递所选省份名称
@@ -265,8 +367,9 @@ Promise.all([
         .translate(-(x0 + x1) / 2, -(y0 + y1) / 2)
     );
   }
-
 });
+
+
 
 function zoomed(event) {
   const { transform } = event;
@@ -275,6 +378,13 @@ function zoomed(event) {
 }
 function reset(event) {
   event.stopPropagation();
+
+  // 显示图例，添加过渡效果
+  legend.style('display', 'block')
+  .transition()
+  .duration(750)
+  .style('opacity', 1);
+
   // 如果有选中的省份，恢复其颜色
   if (selectedProvince) {
     selectedProvince
@@ -282,10 +392,13 @@ function reset(event) {
         const provinceName = normalizeProvinceName(selectedProvince.datum().properties.name);
         const value = currentDataMap.get(provinceName);
         return value ? currentColorScale(value) : '#ccc';
-      });
+      })
+      .attr('stroke', null)  // 移除描边
+            .attr('stroke-width', null);
+        ;
     selectedProvince = null;
-     // 触发重置事件，传递 null 表示没有省份被选中
-     const customEvent = new CustomEvent('provinceSelected', {
+    // 触发重置事件，传递 null 表示没有省份被选中
+    const customEvent = new CustomEvent('provinceSelected', {
       detail: { province: null }
     });
     document.dispatchEvent(customEvent);
@@ -295,5 +408,5 @@ function reset(event) {
     d3.zoomIdentity,
     d3.zoomTransform(svg.node()).invert([width / 2, height / 2])
   );
-  
+
 }
