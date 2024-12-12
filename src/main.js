@@ -96,8 +96,8 @@ migration.forEach(d => {
   const birthRateColor = d3.scaleSequential(d3.interpolateReds)
     .domain([3, 15]);
 
-  const genderRatioColor = d3.scaleSequential(d3.interpolateGreens)
-    .domain([95, 120]);
+  const genderRatioColor = d3.scaleDiverging(d3.interpolateRdBu)
+    .domain([95, 100, 115]); // 95以下为红色，100为白色，105以上为蓝色
 
     const migrationColor = d3.scaleSequential(d3.interpolatePurples)
   .domain([0, d3.max([...migrationMap.values()])]);
@@ -224,6 +224,56 @@ migration.forEach(d => {
       .attr('y', -10)
       .style('font-size', '12px')
       .text(title);
+
+ // 判断是否为diverging scale (用于性别比例)
+ const isDiverging = scale.domain().length === 3;
+
+ if (isDiverging) {
+  const [min, mid, max] = scale.domain(); // [95, 100, 115]
+  const numStops = 20;
+
+  const rangeLower = mid - min;
+  const rangeUpper = max - mid;
+  const totalRange = rangeLower + rangeUpper;
+
+  const numStopsLower = Math.round(numStops * (rangeLower / totalRange));
+  const numStopsUpper = numStops - numStopsLower;
+
+  const lowerDataPoints = d3.range(numStopsLower).map(i =>
+    min + (i / (numStopsLower - 1)) * rangeLower
+  );
+  const upperDataPoints = d3.range(numStopsUpper).map(i =>
+    mid + (i / (numStopsUpper - 1)) * rangeUpper
+  );
+
+  // 合并并反转数据点，确保图例从上到下表示从小到大
+  const dataPoints = [...lowerDataPoints, ...upperDataPoints].reverse();
+
+  // 绘制渐变矩形
+  legend.selectAll('rect')
+    .data(dataPoints)
+    .enter()
+    .append('rect')
+    .attr('x', 0)
+    .attr('y', (d, i) => i * (height / numStops))
+    .attr('width', width)
+    .attr('height', height / numStops + 1)
+    .style('fill', d => scale(d));
+
+  // 为刻度轴设置正确的比例
+  const legendScale = d3.scaleLinear()
+    .domain([min, mid, max])
+    .range([height, height * (rangeUpper / totalRange), 0]);
+
+  const axis = d3.axisRight(legendScale)
+    .tickValues([min, mid, max]);
+
+  legend.append('g')
+    .attr('transform', `translate(${width}, 0)`)
+    .call(axis);
+}
+else{
+
   
     // 创建颜色条
     const legendScale = d3.scaleLinear()
@@ -254,6 +304,7 @@ migration.forEach(d => {
       .attr('transform', `translate(${width}, 0)`)
       .call(axis);
   }
+}
 
   // 创建按钮并应用样式和事件
   buttons.forEach(buttonInfo => {
