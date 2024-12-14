@@ -27,19 +27,18 @@ svg.attr("width", width).attr("height", height);
 
 let migrationData;
 
-// 加载数据
+// 初始化时显示全国数据
 d3.csv(csv).then((data) => {
   migrationData = data;
-  // 初始化显示北京市数据
-  updateChart("北京市");
+  updateChart("全国");
 });
 
 // 监听省份选择事件
 document.addEventListener('provinceSelected', (e) => {
   const provinceName = e.detail.province;
   if (provinceName === null) {
-    // 如果重置了选择，显示北京市数据
-    updateChart("北京市");
+    // 如果重置了选择，显示全国数据
+    updateChart("全国");
   } else {
     updateChart(provinceName);
   }
@@ -53,23 +52,42 @@ function updateChart(province) {
   const chartWidth = width - margin.left - margin.right;
   const chartHeight = height - margin.top - margin.bottom;
 
-  // 添加标题
-  svg.append("text")
-    .attr("x", margin.left)
-    .attr("y", 30)
-    .attr("font-size", "16px")
-    .attr("font-weight", "bold")
-    .attr("fill", "#333")
-    .text(`${province}的人口迁移`);
+  const regions = ["华北", "东北", "华东", "中南", "西南", "西北"];
+  let regionValues;
 
-  const data = migrationData.find(d => d.地区 === province);
-  if (!data) {
-    console.log("未找到对应省份的数据");
-    return;
+  if (province === "全国") {
+    // 计算全国各区域的迁移总量
+    regionValues = regions.map(region => {
+      return d3.sum(migrationData, d => +d[region]);
+    });
+
+    // 添加标题
+    svg.append("text")
+      .attr("x", margin.left)
+      .attr("y", 30)
+      .attr("font-size", "16px")
+      .attr("font-weight", "bold")
+      .attr("fill", "#333")
+      .text("全国人口迁移去向");
+  } else {
+    const data = migrationData.find(d => d.地区 === province);
+    if (!data) {
+      console.log("未找到对应省份的数据");
+      return;
+    }
+    regionValues = regions.map(region => +data[region]);
+
+    // 添加标题
+    svg.append("text")
+      .attr("x", margin.left)
+      .attr("y", 30)
+      .attr("font-size", "16px")
+      .attr("font-weight", "bold")
+      .attr("fill", "#333")
+      .text(`${province}的人口迁移去向`);
   }
 
-  const regions = ["华北", "东北", "华东", "中南", "西南", "西北"];
-  const regionValues = regions.map(region => +data[region]);
+  // 其余代码保持不变
   const total = d3.sum(regionValues);
 
   const color = [
