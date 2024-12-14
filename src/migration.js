@@ -20,7 +20,7 @@ const tooltip = d3.select("body").append("div")
     .style("min-width", "80px");
 
 // 定义SVG画布
-const svg = d3.select("#mbti-chart");
+const svg = d3.select("#migration-chart");
 const width = 650;
 const height = 300;
 svg.attr("width", width).attr("height", height);

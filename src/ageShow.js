@@ -219,7 +219,21 @@ function updateChart(province, layout = "stacked") {
   if (data.length === 0) return;
 
   const years = data.map(d => d.year);
-  const yz = data.map(d => [d.child, d.adult, d.elder]);
+  // 计算每年各年龄段的总人数和比例
+  const yz = data.map(d => {
+    const total = d.child + d.adult + d.elder;
+    if (layout === "grouped") {
+      // grouped模式返回比例数据
+      return [
+        d.child / total,
+        d.adult / total,
+        d.elder / total
+      ];
+    } else {
+      // stacked模式返回原始数据
+      return [d.child, d.adult, d.elder];
+    }
+  });
   const n = 3;
 
   const yStackMax = d3.max(yz, y => d3.sum(y));
@@ -234,17 +248,21 @@ function updateChart(province, layout = "stacked") {
   // 1. 获取所有省份的最大 total 值
   const globalMaxTotal = d3.max(combinedData2, d => d.male + d.female);
 
-  const totalPopulation = d3.max(
-    combinedData2,
-    d => (d.region === province ? d.male + d.female : -Infinity)
-  );
+  // 计算所有省份的最大总人口
+  const maxPopulation = d3.max(combinedData2, d => d.male + d.female);
 
+  // 计算所有省份年龄段数据的最大值
+  const maxAgeGroupValue = d3.max(combinedData, d => {
+    const total = d.child + d.adult + d.elder;
+    return Math.max(d.child, d.adult, d.elder);
+  });
 
-
-  // 2. 使用这个 globalMaxTotal 来设置 yLeft 比例尺的最大值
+  // 使用全局最大值设置比例尺
   const yLeft = d3.scaleLinear()
-    .domain([0, totalPopulation * 1.1])  // 使用所有省份的最大值
+    .domain([0, layout === "grouped" ? 1 : maxAgeGroupValue * 1.35])
     .range([height, 0]);
+
+
 
   // 1. 准备包含总人数、男性和女性数据的数组
   const maleFemaleData = combinedData2.filter(d => d.region === province).map(d => ({
@@ -440,6 +458,8 @@ function updateChart(province, layout = "stacked") {
 
   // 实现布局切换动画
   function transitionGrouped() {
+    // 更新y轴比例尺到百分比范围
+    yLeft.domain([0, 1]);
 
     bars.transition()
       .duration(500)
@@ -453,30 +473,35 @@ function updateChart(province, layout = "stacked") {
       .attr('y', d => yLeft(d[1] - d[0]))
       .attr('height', d => height - yLeft(d[1] - d[0]));
 
+    // 更新y轴标签为百分比格式
+    svg.select('.y-axis-left')
+      .transition()
+      .duration(500)
+      .call(d3.axisLeft(yLeft).tickFormat(d3.format('.0%')));
+  }
+
+  // 修改transitionStacked函数
+  function transitionStacked() {
+    // 更新y轴比例尺到原始数值范围
+    yLeft.domain([0, totalPopulation * 1.1]);
+
+    bars.transition()
+      .duration(500)
+      .delay((d, i) => i * 20)
+      .attr('y', d => yLeft(d[1]))
+      .attr('height', d => yLeft(d[0]) - yLeft(d[1]))
+      .transition()
+      .attr("x", (d, i) => x(years[i]))
+      .attr("width", x.bandwidth())
+      .ease(d3.easeCubicOut);
+
+    // 更新y轴标签为原始数值格式
     svg.select('.y-axis-left')
       .transition()
       .duration(500)
       .call(d3.axisLeft(yLeft));
   }
 
-  function transitionStacked() {
-    bars.transition()
-      .duration(500)
-      .delay((d, i) => i * 20)
-      .attr('y', d => yLeft(d[1]))  // 更新 Y 位置
-      .attr('height', d => yLeft(d[0]) - yLeft(d[1]))  // 更新条形的高度
-      .transition()
-        .attr("x", (d, i) => {
-          return x(years[i]);
-        })
-        .attr("width", x.bandwidth())
-      .ease(d3.easeCubicOut);
-
-    svg.select('.y-axis-left')
-      .transition()
-      .duration(500)
-      .call(d3.axisLeft(yLeft));  // 更新 Y 轴
-  }
 
 
 

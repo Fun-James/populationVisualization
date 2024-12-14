@@ -1,15 +1,16 @@
 import * as d3 from "d3";
-const csv = new URL('./assets/policy.csv', import.meta.url).href;
 
-// 定义颜色常量
+export function initializePolicyChart() {
+    const csv = new URL('./assets/policy.csv', import.meta.url).href;
+    // 定义颜色常量
 const colors = {
     birth: "#FF4D4F",     // 漂亮的红色
     upup: "#FFAA5F",      // 淡橙色
     policy: "#4682B4"     // steelblue
 };
 
-const svg = d3.select("div.b").append("svg");
-const bRect = d3.select("div.b").node().getBoundingClientRect();
+const svg = d3.select("#policy").append("svg");
+const bRect = d3.select("#policy").node().getBoundingClientRect();
 const width = bRect.width;
 const height = bRect.height;
 svg.attr("width", width).attr("height", height);
@@ -27,7 +28,7 @@ const tooltip = d3.select("body").append("div")
     .style("font-size", "14px")
     .style("line-height", "1.4")
     .style("pointer-events", "none")
-    .style("z-index", "100")
+    .style("z-index", "9999")
     .style("min-width", "150px");
 
 const tooltipContent = (year, value, type) => {
@@ -50,7 +51,7 @@ d3.csv(csv).then((data, error) => {
             d.upup = +d.upup;
         });
 
-        const margin = { top: 50, right: 150, bottom: 70, left: 80 };
+        const margin = { top: 50, right: 50, bottom: 70, left: 80 };
         const chartWidth = width - margin.left - margin.right;
         const chartHeight = height - margin.top - margin.bottom;
 
@@ -93,7 +94,7 @@ d3.csv(csv).then((data, error) => {
         // 添加坐标轴标签
         chartGroup.append("text")
             .attr("x", chartWidth/2)
-            .attr("y", chartHeight + margin.bottom-40)
+            .attr("y", chartHeight + margin.bottom-20)
             .attr("text-anchor", "end")
             .attr("fill", "black")
             .text("年份");
@@ -101,7 +102,7 @@ d3.csv(csv).then((data, error) => {
         chartGroup.append("text")
             .attr("transform", "rotate(-90)")
             .attr("x", -margin.top/6)
-            .attr("y", -margin.left + 20)
+            .attr("y", -margin.left + 50)
             .attr("text-anchor", "end")
             .attr("fill", "black")
             .text("出生率与自然增长率 (‰)");
@@ -109,7 +110,7 @@ d3.csv(csv).then((data, error) => {
         chartGroup.append("text")
             .attr("transform", "rotate(-90)")
             .attr("x", -margin.top/6)
-            .attr("y", chartWidth + margin.right -100)
+            .attr("y", chartWidth + margin.right -5)
             .attr("text-anchor", "end")
             .attr("fill", "black")
             .text("政策文件数量（个）");
@@ -166,7 +167,7 @@ d3.csv(csv).then((data, error) => {
                     .duration(200)
                     .style("opacity", .9);
                 tooltip.html(tooltipContent(d.year, d.birth, "出生率"))
-                    .style("left", (event.pageX + 10) + "px")
+                    .style("left", (event.pageX - 160) + "px")
                     .style("top", (event.pageY - 28) + "px");
             })
             .on("mouseout", () => {
@@ -189,7 +190,7 @@ d3.csv(csv).then((data, error) => {
                     .duration(200)
                     .style("opacity", .9);
                 tooltip.html(tooltipContent(d.year, d.upup, "自然增长率"))
-                    .style("left", (event.pageX + 10) + "px")
+                    .style("left", (event.pageX - 160) + "px")
                     .style("top", (event.pageY - 28) + "px");
             })
             .on("mouseout", () => {
@@ -212,7 +213,7 @@ d3.csv(csv).then((data, error) => {
                     .duration(200)
                     .style("opacity", .9);
                 tooltip.html(tooltipContent(d.year, d.policy, "政策文件数量"))
-                    .style("left", (event.pageX + 10) + "px")
+                    .style("left", (event.pageX - 160) + "px")
                     .style("top", (event.pageY - 28) + "px");
             })
             .on("mouseout", () => {
@@ -251,3 +252,6 @@ d3.csv(csv).then((data, error) => {
             .text(d => d.name);
     }
 });
+}
+
+

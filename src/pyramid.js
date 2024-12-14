@@ -1,5 +1,7 @@
 import * as d3 from 'd3';
 
+export function initializePyramidChart() {
+
 const yearData = {
     2023: csv = new URL('./assets/China-2023.csv', import.meta.url).href,
     2022: csv = new URL('./assets/China-2022.csv', import.meta.url).href,
@@ -85,10 +87,9 @@ async function loadData() {
 }
 loadData();
 // 获取容器元素并计算其尺寸
-const container = d3.select(".a");
+const container = d3.select("#pyramid-chart-container");
 const containerWidth = container.node().getBoundingClientRect().width;
 const containerHeight = container.node().getBoundingClientRect().height;
-
 // 设置画布尺寸和边距
 const margin = { top: 20, right: 30, bottom: 120, left: 60 }; // 增加底部边距以容纳滑动轴
 const width = containerWidth - margin.left - margin.right;
@@ -382,3 +383,4 @@ window.addEventListener('resize', function () {
     const newHeight = container.node().getBoundingClientRect().height;
     svg.attr("viewBox", `0 0 ${newWidth} ${newHeight}`);
 });
+}
