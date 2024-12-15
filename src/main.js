@@ -423,7 +423,7 @@ createLegend(birthRateColor, '出生率 (‰)');
       zoom.transform,
       d3.zoomIdentity
         .translate(width / 2, height / 2)
-        .scale(Math.min(5, 0.9 / Math.max((x1 - x0) / width, (y1 - y0) / height)))
+        .scale(Math.min(3, 0.9 / Math.max((x1 - x0) / width, (y1 - y0) / height)))
         .translate(-(x0 + x1) / 2, -(y0 + y1) / 2)
     );
   }
