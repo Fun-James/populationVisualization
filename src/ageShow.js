@@ -1,9 +1,14 @@
 import * as d3 from 'd3';
 
+let nationalData = [];
 let combinedData = [];
 let combinedData2 = [];
-let selectedProvince = "北京市";
+let selectedProvince = '全国';
 let selectedLayout = "grouped";
+
+// 添加全国平均数据的加载
+const csvurlAvg = new URL('./assets/average.csv', import.meta.url).href;
+
 
 const tooltip = d3.select("body").append("div")
   .attr("class", "tooltip")
@@ -27,8 +32,6 @@ const tooltipContent = (province, year, value, type) => `
     <div style="color: #666;">年份: ${year}</div>
     <div style="color: #666;">${type}: <span style="color: #e4393c; font-weight: bold;">${value}</span></div>
 `;
-
-
 
 function createRadioButton() {
   const buttonContainer = document.getElementById('button-container')
@@ -69,7 +72,10 @@ function createRadioButton() {
     });
 
     if (label === "Grouped") radio.checked = true;
-
+    if (label === "Stacked" && selectedProvince === '全国') {
+      radio.disabled = true;
+      radioLabel.style.opacity = '0.6'; // 调整样式表示不可用
+    }
     radioLabel.appendChild(radio);
     radioLabel.appendChild(document.createTextNode(label));
 
@@ -104,7 +110,14 @@ function createRadioButton() {
   buttonContainer.appendChild(form);
 
   form.addEventListener('change', (event) => {
-    selectedLayout = event.target.value;
+    const selectedValue = event.target.value;
+    if (selectedValue === 'stacked' && selectedProvince === '全国') {
+      // 如果选择了 'stacked' 并且当前选择的是 '全国'，则切换回 'grouped'
+      form.querySelector('input[value="grouped"]').checked = true;
+      selectedLayout = 'grouped';
+    } else {
+      selectedLayout = selectedValue;
+    }
     updateChart(selectedProvince, selectedLayout);
   });
 
@@ -116,18 +129,37 @@ function createRadioButton() {
     label.style.borderColor = '#3288bd';
     label.style.color = '#3288bd';
   }
+
+  // 检查初始状态
+  if (selectedProvince === '全国' && selectedLayout === 'stacked') {
+    form.querySelector('input[value="grouped"]').checked = true;
+    selectedLayout = 'grouped';
+  }
 }
+
+
 const csvurl4 = new URL('./assets/allpeople.csv', import.meta.url).href;
 const csvurl5 = new URL('./assets/malefemale.csv', import.meta.url).href;
 
 const loadData2 = () => {
   return Promise.all([
     d3.csv(csvurl4),  // 读取总人数数据
-    d3.csv(csvurl5)   // 读取男女性别比例数据
+    d3.csv(csvurl5),   // 读取男女性别比例数据
+    d3.csv(csvurlAvg)  // 读取全国平均数据
   ]);
 };
 
-loadData2().then(([allPeopleData, maleFemaleData]) => {
+loadData2().then(([allPeopleData, maleFemaleData,avgData]) => {
+   // 处理全国平均数据
+   const years = Object.keys(avgData[0]).filter(key => key !== 'year');
+   years.forEach(year => {
+     nationalData.push({
+       region: '全国',
+       year: year,
+       male: +avgData.find(d => d.year === 'male')[year] , // 转换为具体人数
+       female: +avgData.find(d => d.year === 'female')[year]
+     });
+   });
 
   allPeopleData.forEach((personRecord, index) => {
     const region = personRecord['地区']; // 获取地区
@@ -143,7 +175,7 @@ loadData2().then(([allPeopleData, maleFemaleData]) => {
         const femaleRatio = 100; // 女性默认是100
         const male = Math.round(total * maleRatio / (maleRatio + femaleRatio)); // 计算男性人数
         const female = total - male; // 计算女性人数
-
+        
         // 将数据合并到最终的数组中
         combinedData2.push({
           region,
@@ -154,7 +186,7 @@ loadData2().then(([allPeopleData, maleFemaleData]) => {
       }
     });
   });
-
+  combinedData2 = combinedData2.concat(nationalData);
 }).catch((error) => {
   console.error('Error loading data:', error);
 });
@@ -172,10 +204,26 @@ const loadData = () => {
     d3.csv(csvurl2),
     d3.csv(csvurl3),
     d3.csv(csvurl6),
+    d3.csv(csvurlAvg)
   ]);
 };
 
-loadData().then(([data1, data2, data3, totalPopulation]) => {
+loadData().then(([data1, data2, data3, totalPopulation,avgData]) => {
+  
+  // 处理全国平均数据
+  const years = Object.keys(avgData[0]).filter(key => key !== 'year');
+  years.forEach(year => {
+    const totalNational = 10000; // 设置基数
+    combinedData.push({
+      province: '全国',
+      year: year,
+      child: +avgData.find(d => d.year === 'child')[year] * totalNational,
+      adult: +avgData.find(d => d.year === 'adult')[year] * totalNational,
+      elder: +avgData.find(d => d.year === 'elder')[year] * totalNational
+    });
+  });
+  
+  
   data1.forEach((item, index) => {
     const province = item['地区'];
     const years = Object.keys(item).filter(key => key !== '地区');
@@ -191,11 +239,11 @@ loadData().then(([data1, data2, data3, totalPopulation]) => {
     });
   });
   // 初始化图表
-  updateChart(selectedProvince, selectedLayout);
+  updateChart('全国', selectedLayout);
   createRadioButton();
   // 添加窗口大小改变时的自适应
   window.addEventListener('resize', () => {
-    updateChart(selectedProvince, selectedLayout);
+    updateChart(selectedProvince || '全国', selectedLayout);
   });
 }).catch(error => {
   console.error('读取 CSV 文件失败：', error);
@@ -206,6 +254,10 @@ loadData().then(([data1, data2, data3, totalPopulation]) => {
 
 
 function updateChart(province, layout = "stacked") {
+  if (province === '全国' && layout === "stacked") {
+    // 当选择全国并且布局为 stacked 时，不执行任何操作
+    return;
+  }
   // 在 updateChart 函数开始处添加一个判断是否首次创建的标志
   const isFirstRender = d3.select('#ageshow-container .y-axis-left').empty();
   const container = document.getElementById('ageshow-container');
@@ -218,6 +270,8 @@ function updateChart(province, layout = "stacked") {
   const data = combinedData.filter(d => d.province === province);
   if (data.length === 0) return;
 
+
+  
   const years = data.map(d => d.year);
   // 计算每年各年龄段的总人数和比例
   const yz = data.map(d => {
@@ -516,6 +570,30 @@ function updateChart(province, layout = "stacked") {
 
 // 监听省份选择事件
 document.addEventListener('provinceSelected', (event) => {
-  selectedProvince = event.detail.province;
+  const province = event.detail.province;
+  selectedProvince = province || '全国'; // 如果没有选择省份，则显示全国数据
   updateChart(selectedProvince, selectedLayout);
+
+   // 更新按钮可用性
+   const radios = document.querySelectorAll('input[name="layout"]');
+   radios.forEach(radio => {
+     if (radio.value === 'stacked') {
+       if (selectedProvince === '全国') {
+         radio.disabled = true;
+         radio.parentElement.style.opacity = '0.6';
+         // 如果当前选中了 'stacked'，切换为 'grouped'
+         if (radio.checked) {
+           radios.forEach(r => {
+             if (r.value === 'grouped') {
+               r.checked = true;
+               selectedLayout = 'grouped';
+             }
+           });
+         }
+       } else {
+         radio.disabled = false;
+         radio.parentElement.style.opacity = '1';
+       }
+     }
+   });
 });

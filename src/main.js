@@ -91,7 +91,7 @@ migration.forEach(d => {
 
   // 定义颜色比例尺
   const allPeopleColor = d3.scaleSequential(d3.interpolateBlues)
-    .domain([2000, 12000]);
+    .domain([300, 12800]);
 
   const birthRateColor = d3.scaleSequential(d3.interpolateReds)
     .domain([3, 15]);
