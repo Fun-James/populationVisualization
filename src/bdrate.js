@@ -56,11 +56,11 @@ Promise.all([
     // 创建颜色比例尺
     const birthColorScale = d3.scaleSequential()
         .domain([0, birthProvinces.length - 1])
-        .interpolator(d3.interpolateRgb("#800000", "#DAA520"));
+        .interpolator(d3.interpolateRgb("rgb(20, 20, 145)", "#87CEEB"));
 
     const deathColorScale = d3.scaleSequential()
         .domain([0, deathProvinces.length - 1])
-        .interpolator(d3.interpolateRgb("#000080", "#87CEEB")); // 深蓝色到天蓝色
+        .interpolator(d3.interpolateRgb("rgba(255, 0, 0, 0.51)", "rgba(241, 79, 4, 0.75)"));
 
     // 计算y轴域
     const yDomain = [0, Math.max(
@@ -280,7 +280,7 @@ Promise.all([
         .attr("x2", 20)
         .attr("y1", 0)
         .attr("y2", 0)
-        .attr("stroke", "#800000")
+        .attr("stroke", "rgb(8, 97, 185)")
         .attr("stroke-width", 2);
 
     legend.append("line")
@@ -288,7 +288,7 @@ Promise.all([
         .attr("x2", 20)
         .attr("y1", 20)
         .attr("y2", 20)
-        .attr("stroke", "#000080")
+        .attr("stroke", "rgba(241, 28, 4, 0.75)")
         .attr("stroke-width", 2)
         .attr("stroke-dasharray", "4,4");
 

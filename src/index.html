@@ -72,7 +72,7 @@
             padding: 12px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             overflow: hidden;
-            /* 防止内容溢出 */
+            
         }
 
         /* A区域 */
@@ -156,29 +156,26 @@
 </head>
 
 <body>
-    <!-- 顶部导航栏 -->
+
     <div class="navbar">
         <div class="logo">DataVis</div>
         <div class="navbar-menu">
             <a href="#" class="navbar-item" onclick="openOverlay()">全国</a>
         </div>
     </div>
-    <!-- 主体内容 -->
+
     <div class="main">
-        <!-- A: Scatter View -->
         <div class="map">
             <div id="map-container"></div>
             <div id="controls-container"></div>
         </div>
 
-        <!-- B: Portrait View -->
         <div class="bdrate"></div>
-        <!-- C: Question View -->
+    
         <div class="c">
             <div id="ageshow-container"></div>
             <div id="button-container"></div>
         </div>
-        <!-- D: Week View -->
         <div class="d">
             <svg id="migration-chart"></svg>
         </div>
@@ -202,7 +199,7 @@
         import './migration.js';
         // 标记图表是否已初始化
         let chartsInitialized = false;
-        // 定义全局函数
+       
         window.openOverlay = () => {
             document.getElementById('overlay').style.display = 'flex';
             // 只在第一次打开时初始化图表

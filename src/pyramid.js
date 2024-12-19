@@ -368,14 +368,14 @@ svg.append("text")
     .attr("y", 0)
     .attr("text-anchor", "middle")
     .style("font-size", "16px")
-    .text("Male");
+    .text("男性");
 
 svg.append("text")
     .attr("x", x(5))
     .attr("y", 0)
     .attr("text-anchor", "middle")
     .style("font-size", "16px")
-    .text("Female");
+    .text("女性");
 
 // 添加窗口大小改变时的响应
 window.addEventListener('resize', function () {

@@ -4,9 +4,9 @@ export function initializePolicyChart() {
     const csv = new URL('./assets/policy.csv', import.meta.url).href;
     // 定义颜色常量
     const colors = {
-        birth: "#FF4D4F",     // 漂亮的红色
-        upup: "#FFAA5F",      // 淡橙色
-        policy: "#4682B4"     // steelblue
+        birth: "rgb(47, 161, 255)",     
+        upup: "#FFAA5F",      
+        policy: "rgb(255, 60, 1)"     
     };
 
     const svg = d3.select("#policy").append("svg");
@@ -124,23 +124,27 @@ export function initializePolicyChart() {
                 .text("政策文件数量（个）");
 
 // 在绘制线条之前添加背景
-                periods.forEach(period => {
-                    chartGroup.append("rect")
-                        .attr("x", xScale(period.start))
-                        .attr("y", 0)
-                        .attr("width", xScale(period.end) - xScale(period.start))
-                        .attr("height", chartHeight)
-                        .attr("fill", period.color);
-                
-                    // // 添加时期标签
-                    // chartGroup.append("text")
-                    //     .attr("x", xScale(period.start) + (xScale(period.end) - xScale(period.start))/2)
-                    //     .attr("y", 20)
-                    //     .attr("text-anchor", "middle")
-                    //     .attr("fill", "#666")
-                    //     .attr("font-size", "12px")
-                    //     .text(period.label);
-                });
+periods.forEach(period => {
+    // 在每个时期的开始位置添加垂直虚线
+    chartGroup.append("line")
+        .attr("x1", xScale(period.start))
+        .attr("x2", xScale(period.start))
+        .attr("y1", 0)
+        .attr("y2", chartHeight)
+        .attr("stroke", "#999")  // 使用灰色
+        .attr("stroke-width", 1)
+        .attr("stroke-dasharray", "5,5")  // 设置为虚线
+        .attr("class", "period-line");
+
+    // // 添加时期标签
+    // chartGroup.append("text")
+    //     .attr("x", xScale(period.start))
+    //     .attr("y", -10)  // 将标签放在图表上方
+    //     .attr("text-anchor", "middle")
+    //     .attr("fill", "#666")
+    //     .attr("font-size", "12px")
+    //     .text(period.label);
+});
             // 定义线条生成器
             const lineBirth = d3.line()
                 .x(d => xScale(d.year))

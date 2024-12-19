@@ -336,7 +336,7 @@ function updateChart(province, layout = "stacked") {
 
   const color = d3.scaleOrdinal()
     .domain(["儿童", "成年", "老年"])
-    .range(["#abdda4", "#fee08b", "rgba(244, 109, 67, 0.5)"]);
+    .range(["#abdda4", "#fee08b", "rgba(138, 35, 9, 0.42)"]);
   const svg1 = d3.select('#ageshow-container svg');
   // 如果存在则移除
   if (!svg1.empty()) {
@@ -411,7 +411,7 @@ function updateChart(province, layout = "stacked") {
     .attr('class', 'line-female')
     .attr('d', lineFemale)
     .style('fill', 'none')
-    .style('stroke', '#e72c41')  // 粉色
+    .style('stroke', "#ee7989")  // 粉色
     .style('stroke-width', 2);
 
   svg.selectAll('.dot-female')
@@ -421,7 +421,7 @@ function updateChart(province, layout = "stacked") {
     .attr('cx', d => x(d.year) + x.bandwidth() / 2)
     .attr('cy', d => yRight(d.female))
     .attr('r', 3)
-    .style('fill', '#e72c41')
+    .style('fill', "#ee7989")
     .on("mouseover", function (event, d) {
       tooltip.html(tooltipContent(province, d.year, (d.female * 100).toFixed(2) + '%', '女性比例'))
         .style('left', (event.pageX + 10) + 'px')
@@ -474,7 +474,7 @@ function updateChart(province, layout = "stacked") {
     .attr('y1', 15)
     .attr('x2', 20)
     .attr('y2', 15)
-    .style('stroke', '#d53e4f')  // 粉色表示女性
+    .style('stroke', "#ee7989")  // 粉色表示女性
     .style('stroke-width', 2);
 
   // 添加图例标签

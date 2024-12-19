@@ -90,22 +90,22 @@ migration.forEach(d => {
 });
 
   // 定义颜色比例尺
-  const allPeopleColor = d3.scaleSequential(d3.interpolateBlues)
+  const allPeopleColor = d3.scaleSequential(d3.interpolateReds)
     .domain([300, 12800]);
 
-  const birthRateColor = d3.scaleSequential(d3.interpolateReds)
+  const birthRateColor = d3.scaleSequential(d3.interpolateBlues)
     .domain([3, 15]);
 
   const genderRatioColor = d3.scaleDiverging(d3.interpolateRdBu)
-    .domain([95, 100, 115]); // 95以下为红色，100为白色，105以上为蓝色
+    .domain([85, 100, 115]); 
 
     const migrationColor = d3.scaleSequential(d3.interpolatePurples)
   .domain([0, d3.max([...migrationMap.values()])]);
 
 
   // 默认使用总人数映射
-  currentDataMap = birthRateMap;
-  currentColorScale = birthRateColor;
+  currentDataMap = allPeopleMap;      
+currentColorScale = allPeopleColor;  
 
   const states = g.append('g')
     .attr('fill', '#444')
@@ -229,48 +229,53 @@ migration.forEach(d => {
  const isDiverging = scale.domain().length === 3;
 
  if (isDiverging) {
-  const [min, mid, max] = scale.domain(); // [95, 100, 115]
-  const numStops = 20;
+  let [min, mid, max] = scale.domain(); 
+    const numStops = 30;
 
-  const rangeLower = mid - min;
-  const rangeUpper = max - mid;
-  const totalRange = rangeLower + rangeUpper;
+    // Truncate the scale for gender ratio
+    if (title === '性别比') {
+      min = 95;
+    }
 
-  const numStopsLower = Math.round(numStops * (rangeLower / totalRange));
-  const numStopsUpper = numStops - numStopsLower;
+    const rangeLower = mid - min;
+    const rangeUpper = max - mid;
+    const totalRange = rangeLower + rangeUpper;
 
-  const lowerDataPoints = d3.range(numStopsLower).map(i =>
-    min + (i / (numStopsLower - 1)) * rangeLower
-  );
-  const upperDataPoints = d3.range(numStopsUpper).map(i =>
-    mid + (i / (numStopsUpper - 1)) * rangeUpper
-  );
+    const numStopsLower = Math.round(numStops * (rangeLower / totalRange));
+    const numStopsUpper = numStops - numStopsLower;
 
-  // 合并并反转数据点，确保图例从上到下表示从小到大
-  const dataPoints = [...lowerDataPoints, ...upperDataPoints].reverse();
+    const lowerDataPoints = d3.range(numStopsLower).map(i =>
+      min + (i / (numStopsLower - 1)) * rangeLower
+    );
+    const upperDataPoints = d3.range(numStopsUpper).map(i =>
+      mid + (i / (numStopsUpper - 1)) * rangeUpper
+    );
 
-  // 绘制渐变矩形
-  legend.selectAll('rect')
-    .data(dataPoints)
-    .enter()
-    .append('rect')
-    .attr('x', 0)
-    .attr('y', (d, i) => i * (height / numStops))
-    .attr('width', width)
-    .attr('height', height / numStops + 1)
-    .style('fill', d => scale(d));
+    // 合并并反转数据点，确保图例从上到下表示从小到大
+    const dataPoints = [...lowerDataPoints, ...upperDataPoints].reverse();
 
-  // 为刻度轴设置正确的比例
-  const legendScale = d3.scaleLinear()
-    .domain([min, mid, max])
-    .range([height, height * (rangeUpper / totalRange), 0]);
+    // 绘制渐变矩形
+    legend.selectAll('rect')
+      .data(dataPoints)
+      .enter()
+      .append('rect')
+      .attr('x', 0)
+      .attr('y', (d, i) => i * (height / numStops))
+      .attr('width', width)
+      .attr('height', height / numStops + 1)
+      .style('fill', d => scale(d));
 
-  const axis = d3.axisRight(legendScale)
-    .tickValues([min, mid, max]);
+    // 为刻度轴设置正确的比例
+    const legendScale = d3.scaleLinear()
+      .domain([min, mid, max])
+      .range([height, height * (rangeUpper / totalRange), 0]);
 
-  legend.append('g')
-    .attr('transform', `translate(${width}, 0)`)
-    .call(axis);
+    const axis = d3.axisRight(legendScale)
+      .tickValues([min, mid, max]);
+
+    legend.append('g')
+      .attr('transform', `translate(${width}, 0)`)
+      .call(axis);
 }
 else{
 
@@ -359,11 +364,11 @@ else{
     });
   });
   
-// 初始化默认图例(出生率)
-createLegend(birthRateColor, '出生率 (‰)');
+// 初始化默认图例(改为总人口)
+createLegend(allPeopleColor, '总人口 (万人)');
 
-  // 设置默认选中的按钮（例如，第一个按钮）
-  controlsContainer.select('#birthRateBtn')
+  // 设置默认选中的按钮
+  controlsContainer.select('#totalPopulationBtn')  
     .classed('active', true)
     .style('background-color', '#f0f7ff')
     .style('border-color', '#3288bd')
