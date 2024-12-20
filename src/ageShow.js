@@ -363,7 +363,30 @@ function updateChart(province, layout = "stacked") {
     .attr('x', (d, i) => x(years[i]))
     .attr('y', d => yLeft(d[1]))
     .attr('height', d => yLeft(d[0]) - yLeft(d[1]))
-    .attr('width', x.bandwidth());
+    .attr('width', x.bandwidth())
+    .on("mouseover", function(event, d) {
+        const layerIndex = this.parentNode.__data__.index;
+        const ageGroups = ["0-14岁", "15-64岁", "65岁及以上"];
+        const year = years[d3.select(this).attr("x") / x.step() | 0]
+        let value;
+        if (layout === "grouped") {
+            // grouped模式显示百分比
+            value = ((d[1] - d[0]) * 100).toFixed(2) + '%';
+        } else {
+            // stacked模式显示具体数值
+            const actualValue = d[1] - d[0];
+            value = actualValue.toLocaleString()+' 万人';
+        }
+        
+        tooltip.html(tooltipContent(province, year, value, ageGroups[layerIndex]))
+            .style('left', (event.pageX + 10) + 'px')
+            .style('top', (event.pageY - 28) + 'px')
+            .style('opacity', 1);
+    })
+    .on("mouseout", function() {
+        tooltip.style('opacity', 0);
+    });
+    
 
 
 

@@ -98,6 +98,28 @@ function updateChart(province) {
  
    const regions = ["华北", "东北", "华东", "中南", "西南", "西北"];
  
+   rotatedGroup.append("defs").append("marker")
+   .attr("id", "arrow")
+   .attr("viewBox", "0 -5 10 10")
+   .attr("refX", 5)
+   .attr("refY", 0)
+   .attr("markerWidth", 6)
+   .attr("markerHeight", 6)
+   .attr("orient", "auto")
+   .append("path")
+   .attr("d", "M0,-5L10,0L0,5")
+   .attr("fill", "#666");
+ 
+ // 添加指示箭头线条
+ rotatedGroup.append("line")
+   .attr("x1", 70)  // 位置需要根据实际效果调整
+   .attr("y1", chartHeight )
+   .attr("x2", chartWidth - margin.right - 30)
+   .attr("y2", chartHeight )
+   .attr("stroke", "#666")
+   .attr("stroke-width", 2)
+   .attr("marker-end", "url(#arrow)");
+ 
 
    svg.append("text")
       .attr("x", margin.left/2)
@@ -218,6 +240,8 @@ function updateChart(province) {
     .attr("width", d => d.x1 - d.x0)
     .attr("fill", d => color(d.name.replace("_source", "").replace("_target", "")))
     .attr("stroke", "#888888");
+
+
 
   // 8. 添加标签
   node.append("text")
